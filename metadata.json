@@ -1,0 +1,8 @@
+{
+  "name": "Skinovaai",
+  "description": "An AI-powered beauty app featuring virtual makeup try-on, facial analysis, personalized routines, and self-confidence tools.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

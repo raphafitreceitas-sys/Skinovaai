@@ -1,0 +1,116 @@
+import React, { useEffect, useRef, useState } from 'react';
+import Button from '../components/Button';
+
+const VirtualTryOn: React.FC = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [permissionGranted, setPermissionGranted] = useState(false);
+
+  useEffect(() => {
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setPermissionGranted(true);
+        }
+      } catch (err) {
+        console.error("Error accessing camera:", err);
+      }
+    };
+
+    startCamera();
+
+    return () => {
+      // Cleanup stream
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const filters = [
+    { id: 'natural', name: 'Natural', color: 'rgba(255, 200, 150, 0.1)' },
+    { id: 'bold', name: 'Ousada', color: 'rgba(200, 50, 50, 0.2)' },
+    { id: 'glam', name: 'Glamour', color: 'rgba(255, 215, 0, 0.15)' },
+    { id: 'night', name: 'Noite', color: 'rgba(50, 0, 100, 0.2)' },
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+      {/* Camera Feed */}
+      <div className="relative flex-1 overflow-hidden">
+        <video 
+          ref={videoRef} 
+          autoPlay 
+          playsInline 
+          muted 
+          className="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]"
+        />
+        
+        {/* AR Overlay Layer (Simulated) */}
+        {activeFilter && (
+          <div 
+            className="absolute inset-0 pointer-events-none mix-blend-overlay transition-colors duration-500"
+            style={{ backgroundColor: filters.find(f => f.id === activeFilter)?.color }}
+          ></div>
+        )}
+
+        {/* Permission Message */}
+        {!permissionGranted && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900 text-white p-8 text-center">
+            <p>Por favor, permita o acesso à câmera para experimentar os looks.</p>
+          </div>
+        )}
+
+        {/* UI Controls Overlay */}
+        <div className="absolute top-0 left-0 right-0 p-4 pt-8 flex justify-between items-start bg-gradient-to-b from-black/50 to-transparent">
+          <div className="text-white">
+            <h2 className="font-bold text-lg">Virtual Try-On</h2>
+            <p className="text-xs opacity-80">Experimente antes de comprar</p>
+          </div>
+          <div className="bg-white/20 backdrop-blur-md rounded-full px-3 py-1 text-xs text-white border border-white/30">
+            {activeFilter ? 'Filtro Ativo' : 'Sem Filtro'}
+          </div>
+        </div>
+      </div>
+
+      {/* Controls Area */}
+      <div className="bg-white rounded-t-3xl p-6 pb-safe -mt-6 relative z-10">
+        <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6"></div>
+        
+        <h3 className="text-slate-900 font-bold mb-4">Escolha um Look</h3>
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+          <button 
+             onClick={() => setActiveFilter(null)}
+             className={`flex-shrink-0 w-16 h-16 rounded-full border-2 flex items-center justify-center ${!activeFilter ? 'border-primary-600' : 'border-slate-200'}`}
+          >
+            <span className="text-xs font-medium text-slate-500">Nenhum</span>
+          </button>
+          
+          {filters.map(filter => (
+            <button
+              key={filter.id}
+              onClick={() => setActiveFilter(filter.id)}
+              className={`flex-shrink-0 w-16 h-16 rounded-full border-2 p-1 overflow-hidden transition-all ${activeFilter === filter.id ? 'border-primary-600 scale-110' : 'border-transparent'}`}
+            >
+              <div className="w-full h-full rounded-full bg-slate-200 relative">
+                 {/* Mock preview color */}
+                 <div className="absolute inset-0 opacity-50" style={{ backgroundColor: filter.color.replace('0.1', '1').replace('0.2', '1') }}></div>
+                 <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-slate-800 bg-white/50">{filter.name}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <Button fullWidth variant="primary">Tirar Foto</Button>
+          <Button fullWidth variant="secondary">Ver Produtos</Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default VirtualTryOn;
