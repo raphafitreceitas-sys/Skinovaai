@@ -3,32 +3,73 @@ import Button from '../components/Button';
 
 const VirtualTryOn: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null); // Adicionado para capturar a imagem
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [permissionGranted, setPermissionGranted] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null); // Estado para a imagem capturada
 
   useEffect(() => {
+    let stream: MediaStream | null = null;
+
     const startCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           setPermissionGranted(true);
+          setCapturedImage(null); // Resetar imagem capturada ao iniciar câmera
         }
       } catch (err) {
         console.error("Error accessing camera:", err);
+        setPermissionGranted(false);
       }
     };
 
-    startCamera();
+    if (!capturedImage) { // Só inicia a câmera se não houver imagem capturada
+      startCamera();
+    }
 
     return () => {
       // Cleanup stream
       if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
+        const currentStream = videoRef.current.srcObject as MediaStream;
+        currentStream.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [capturedImage]); // Dependência adicionada para reiniciar a câmera se a imagem for resetada
+
+  const takePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+
+      if (context) {
+        // Set canvas dimensions to video dimensions
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // Draw the video frame onto the canvas, flipping horizontally
+        context.translate(canvas.width, 0);
+        context.scale(-1, 1);
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        context.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+
+        const imageData = canvas.toDataURL('image/png');
+        setCapturedImage(imageData);
+        
+        // Stop camera stream after taking photo
+        if (video.srcObject) {
+          const stream = video.srcObject as MediaStream;
+          stream.getTracks().forEach(track => track.stop());
+        }
+      }
+    }
+  };
+
+  const retakePhoto = () => {
+    setCapturedImage(null); // Limpa a imagem capturada para reiniciar a câmera
+  };
 
   const filters = [
     { id: 'natural', name: 'Natural', color: 'rgba(255, 200, 150, 0.1)' },
@@ -39,15 +80,26 @@ const VirtualTryOn: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
-      {/* Camera Feed */}
+      {/* Camera Feed / Captured Image */}
       <div className="relative flex-1 overflow-hidden">
-        <video 
-          ref={videoRef} 
-          autoPlay 
-          playsInline 
-          muted 
-          className="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]"
-        />
+        {!capturedImage ? (
+          <>
+            <video 
+              ref={videoRef} 
+              autoPlay 
+              playsInline 
+              muted 
+              className="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]"
+            />
+            <canvas ref={canvasRef} className="hidden"></canvas> {/* Canvas oculto para captura */}
+          </>
+        ) : (
+          <img 
+            src={capturedImage} 
+            alt="Captured" 
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        )}
         
         {/* AR Overlay Layer (Simulated) */}
         {activeFilter && (
@@ -58,7 +110,7 @@ const VirtualTryOn: React.FC = () => {
         )}
 
         {/* Permission Message */}
-        {!permissionGranted && (
+        {!permissionGranted && !capturedImage && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-900 text-white p-8 text-center">
             <p>Por favor, permita o acesso à câmera para experimentar os looks.</p>
           </div>
@@ -105,7 +157,15 @@ const VirtualTryOn: React.FC = () => {
         </div>
 
         <div className="mt-6 flex gap-3">
-          <Button fullWidth variant="primary">Tirar Foto</Button>
+          {!capturedImage ? (
+            <Button fullWidth variant="primary" onClick={takePhoto} disabled={!permissionGranted}>
+              Tirar Foto
+            </Button>
+          ) : (
+            <Button fullWidth variant="secondary" onClick={retakePhoto}>
+              Tirar Outra Foto
+            </Button>
+          )}
           <Button fullWidth variant="secondary">Ver Produtos</Button>
         </div>
       </div>
