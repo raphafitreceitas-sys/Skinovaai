@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Button from '../components/Button';
-import { AppView } from '../types'; // Importar AppView
+import { AppView } from '../types';
+import { showSuccess } from '../utils/toast'; // Importar showSuccess
 
 interface VirtualTryOnProps {
-  setView: (view: AppView) => void; // Adicionar prop setView
+  setView: (view: AppView) => void;
 }
 
-const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => { // Receber setView
+const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -22,7 +23,7 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => { // Receber 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           setPermissionGranted(true);
-          setCapturedImage(null);
+          setCapturedImage(null); // Reset captured image when camera starts
         }
       } catch (err) {
         console.error("Error accessing camera:", err);
@@ -30,7 +31,7 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => { // Receber 
       }
     };
 
-    if (!capturedImage) {
+    if (!capturedImage) { // Only start camera if no image is captured
       startCamera();
     }
 
@@ -70,6 +71,19 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => { // Receber 
 
   const retakePhoto = () => {
     setCapturedImage(null);
+    setActiveFilter(null); // Reset filter when retaking photo
+  };
+
+  const savePhoto = () => {
+    if (capturedImage) {
+      const link = document.createElement('a');
+      link.href = capturedImage;
+      link.download = 'skinovaai_tryon_photo.png';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showSuccess('Foto salva na sua galeria!');
+    }
   };
 
   const filters = [
@@ -163,9 +177,14 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => { // Receber 
               Tirar Foto
             </Button>
           ) : (
-            <Button fullWidth variant="secondary" onClick={retakePhoto}>
-              Tirar Outra Foto
-            </Button>
+            <>
+              <Button fullWidth variant="secondary" onClick={retakePhoto}>
+                Tirar Outra Foto
+              </Button>
+              <Button fullWidth variant="primary" onClick={savePhoto}>
+                Salvar Foto
+              </Button>
+            </>
           )}
           <Button fullWidth variant="secondary" onClick={() => setView(AppView.PRODUCTS)}>Ver Produtos</Button>
         </div>
