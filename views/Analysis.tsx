@@ -12,12 +12,14 @@ const Analysis: React.FC<AnalysisProps> = ({ onBack, onShowRecommendations, onTr
   const [scanMessage, setScanMessage] = useState('Iniciando...');
   const [selectedFeature, setSelectedFeature] = useState<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null); // Adicionado para capturar a imagem
+  const [capturedImage, setCapturedImage] = useState<string | null>(null); // Estado para a imagem capturada
 
   // Mock Data for Shades
   const SUGGESTED_SHADES = [
     { id: 'shade_04', name: 'Bege Médio 04', brand: 'Lumina', color: '#e0ac69', match: 98, storeLink: 'https://www.tiktok.com/@blindaskin?_r=1&_t=ZM-91aKKMkTCqu' },
     { id: 'shade_05', name: 'Bege Claro 05', brand: 'GlowUp', color: '#e8b880', match: 92, storeLink: 'https://www.tiktok.com/@blindaskin?_r=1&_t=ZM-91aKKMkTCqu' },
-    { id: 'shade_03', name: 'Bege Médio 03', brand: 'Lumina', color: '#d69d5e', match: 89, storeLink: 'https://www.tiktok.com/@blindaskin?_r=1&_t=ZM-91aKKMkTCqu' },
+    { id: 'shade_03', name: 'Bege Médio 03', brand: 'Lumina', color: '#d69d5e', match: 89, storeLink: 'https://www.tiktok.com/@blindaskin?_r=1&_t=ZM-1aKKMkTCqu' },
   ];
 
   // Mock Data for Best Features
@@ -70,7 +72,7 @@ const Analysis: React.FC<AnalysisProps> = ({ onBack, onShowRecommendations, onTr
       }
     };
 
-    if (step === 'camera' || step === 'scanning') {
+    if (step === 'camera') { // Only start camera in 'camera' step
       startCamera();
     }
 
@@ -82,6 +84,31 @@ const Analysis: React.FC<AnalysisProps> = ({ onBack, onShowRecommendations, onTr
   }, [step]);
 
   const startScan = () => {
+    // Capture photo before starting scan
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+
+      if (context) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.translate(canvas.width, 0);
+        context.scale(-1, 1);
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        context.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+
+        const imageData = canvas.toDataURL('image/png');
+        setCapturedImage(imageData);
+
+        // Stop camera stream after taking photo
+        if (video.srcObject) {
+          const stream = video.srcObject as MediaStream;
+          stream.getTracks().forEach(track => track.stop());
+        }
+      }
+    }
+
     setStep('scanning');
     
     const messages = [
@@ -127,8 +154,7 @@ const Analysis: React.FC<AnalysisProps> = ({ onBack, onShowRecommendations, onTr
           <div className="flex justify-center mb-6">
             <div className="relative w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-primary-400 to-accent">
               <div className="w-full h-full rounded-full overflow-hidden bg-slate-200 border-4 border-white relative">
-                {/* Placeholder for captured image */}
-                <img src="https://picsum.photos/200/200?face" alt="User" className="w-full h-full object-cover" />
+                {capturedImage && <img src={capturedImage} alt="User" className="w-full h-full object-cover" />}
                 <div className="absolute bottom-0 right-0 bg-green-500 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white shadow-sm">
                   ✓
                 </div>
@@ -414,6 +440,7 @@ const Analysis: React.FC<AnalysisProps> = ({ onBack, onShowRecommendations, onTr
           muted 
           className="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]"
         />
+        <canvas ref={canvasRef} className="hidden"></canvas> {/* Canvas oculto para captura */}
         
         {/* Overlay Guide with Pulsing Animation */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
