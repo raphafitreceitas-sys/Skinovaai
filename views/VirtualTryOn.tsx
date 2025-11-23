@@ -1,16 +1,32 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Button from '../components/Button';
-import { AppView } from '../types';
-import { showSuccess } from '../utils/toast'; // Importar showSuccess
+import { showSuccess } from '../utils/toast';
+import { SUGGESTED_SHADES } from '../constants'; // Importar SUGGESTED_SHADES
 
 interface VirtualTryOnProps {
-  setView: (view: AppView) => void;
+  onClose: () => void; // Callback para fechar o provador
+  onViewProducts: () => void; // Callback para ver produtos
+  initialShadeId?: string | null; // Novo prop para o tom inicial
 }
 
-const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => {
+const hexToRgba = (hex: string, alpha: number = 0.15): string => {
+  let r = 0, g = 0, b = 0;
+  if (hex.length === 7) { // #RRGGBB
+    r = parseInt(hex.slice(1, 3), 16);
+    g = parseInt(hex.slice(3, 5), 16);
+    b = parseInt(hex.slice(5, 7), 16);
+  } else if (hex.length === 4) { // #RGB
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ onClose, onViewProducts, initialShadeId }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [activeFilterColor, setActiveFilterColor] = useState<string | null>(null); // Armazena a string de cor RGBA
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
 
@@ -43,6 +59,20 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => {
     };
   }, [capturedImage]);
 
+  // Efeito para aplicar o filtro inicial quando initialShadeId muda
+  useEffect(() => {
+    if (initialShadeId) {
+      const shade = SUGGESTED_SHADES.find(s => s.id === initialShadeId);
+      if (shade) {
+        const rgbaColor = hexToRgba(shade.color, 0.2); // Usar alpha 0.2 para tons de base
+        setActiveFilterColor(rgbaColor);
+        showSuccess(`Aplicando tom: ${shade.name}`);
+      }
+    } else {
+      setActiveFilterColor(null); // Limpar filtro se não houver tom inicial
+    }
+  }, [initialShadeId]);
+
   const takePhoto = () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
@@ -71,7 +101,7 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => {
 
   const retakePhoto = () => {
     setCapturedImage(null);
-    setActiveFilter(null); // Reset filter when retaking photo
+    // activeFilterColor is kept, user can change it later
   };
 
   const savePhoto = () => {
@@ -87,10 +117,10 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => {
   };
 
   const filters = [
-    { id: 'natural', name: 'Natural', color: 'rgba(255, 200, 150, 0.1)' },
-    { id: 'bold', name: 'Ousada', color: 'rgba(200, 50, 50, 0.2)' },
-    { id: 'glam', name: 'Glamour', color: 'rgba(255, 215, 0, 0.15)' },
-    { id: 'night', name: 'Noite', color: 'rgba(50, 0, 100, 0.2)' },
+    { name: 'Natural', color: 'rgba(255, 200, 150, 0.1)' },
+    { name: 'Ousada', color: 'rgba(200, 50, 50, 0.2)' },
+    { name: 'Glamour', color: 'rgba(255, 215, 0, 0.15)' },
+    { name: 'Noite', color: 'rgba(50, 0, 100, 0.2)' },
   ];
 
   return (
@@ -117,10 +147,10 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => {
         )}
         
         {/* AR Overlay Layer (Simulated) */}
-        {activeFilter && (
+        {activeFilterColor && (
           <div 
             className="absolute inset-0 pointer-events-none mix-blend-overlay transition-colors duration-500"
-            style={{ backgroundColor: filters.find(f => f.id === activeFilter)?.color }}
+            style={{ backgroundColor: activeFilterColor }}
           ></div>
         )}
 
@@ -138,7 +168,7 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => {
             <p className="text-xs opacity-80">Experimente antes de comprar</p>
           </div>
           <div className="bg-white/20 backdrop-blur-md rounded-full px-3 py-1 text-xs text-white border border-white/30">
-            {activeFilter ? 'Filtro Ativo' : 'Sem Filtro'}
+            {activeFilterColor ? 'Filtro Ativo' : 'Sem Filtro'}
           </div>
         </div>
       </div>
@@ -150,25 +180,39 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => {
         <h3 className="text-slate-900 font-bold mb-4">Escolha um Look</h3>
         <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
           <button 
-             onClick={() => setActiveFilter(null)}
-             className={`flex-shrink-0 w-16 h-16 rounded-full border-2 flex items-center justify-center ${!activeFilter ? 'border-primary-600' : 'border-slate-200'}`}
+             onClick={() => setActiveFilterColor(null)}
+             className={`flex-shrink-0 w-16 h-16 rounded-full border-2 flex items-center justify-center ${!activeFilterColor ? 'border-primary-600' : 'border-slate-200'}`}
           >
             <span className="text-xs font-medium text-slate-500">Nenhum</span>
           </button>
           
-          {filters.map(filter => (
+          {filters.map((filter, index) => (
             <button
-              key={filter.id}
-              onClick={() => setActiveFilter(filter.id)}
-              className={`flex-shrink-0 w-16 h-16 rounded-full border-2 p-1 overflow-hidden transition-all ${activeFilter === filter.id ? 'border-primary-600 scale-110' : 'border-transparent'}`}
+              key={index}
+              onClick={() => setActiveFilterColor(filter.color)}
+              className={`flex-shrink-0 w-16 h-16 rounded-full border-2 p-1 overflow-hidden transition-all ${activeFilterColor === filter.color ? 'border-primary-600 scale-110' : 'border-transparent'}`}
             >
               <div className="w-full h-full rounded-full bg-slate-200 relative">
                  {/* Mock preview color */}
-                 <div className="absolute inset-0 opacity-50" style={{ backgroundColor: filter.color.replace('0.1', '1').replace('0.2', '1') }}></div>
+                 <div className="absolute inset-0 opacity-50" style={{ backgroundColor: filter.color.replace('0.1', '1').replace('0.2', '1').replace('0.15', '1') }}></div>
                  <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-slate-800 bg-white/50">{filter.name}</span>
               </div>
             </button>
           ))}
+          {initialShadeId && !filters.some(f => hexToRgba(SUGGESTED_SHADES.find(s => s.id === initialShadeId)?.color || '', 0.2) === activeFilterColor) && (
+            <button
+              onClick={() => {
+                const shade = SUGGESTED_SHADES.find(s => s.id === initialShadeId);
+                if (shade) setActiveFilterColor(hexToRgba(shade.color, 0.2));
+              }}
+              className={`flex-shrink-0 w-16 h-16 rounded-full border-2 p-1 overflow-hidden transition-all ${activeFilterColor === hexToRgba(SUGGESTED_SHADES.find(s => s.id === initialShadeId)?.color || '', 0.2) ? 'border-primary-600 scale-110' : 'border-transparent'}`}
+            >
+              <div className="w-full h-full rounded-full bg-slate-200 relative">
+                 <div className="absolute inset-0 opacity-50" style={{ backgroundColor: SUGGESTED_SHADES.find(s => s.id === initialShadeId)?.color }}></div>
+                 <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-slate-800 bg-white/50">Seu Tom</span>
+              </div>
+            </button>
+          )}
         </div>
 
         <div className="mt-6 flex gap-3">
@@ -186,9 +230,17 @@ const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => {
               </Button>
             </>
           )}
-          <Button fullWidth variant="secondary" onClick={() => setView(AppView.PRODUCTS)}>Ver Produtos</Button>
+          <Button fullWidth variant="secondary" onClick={onViewProducts}>Ver Produtos</Button>
         </div>
       </div>
+
+      {/* Close button for VirtualTryOn */}
+      <button 
+        onClick={onClose}
+        className="fixed top-4 left-4 z-50 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center font-bold text-slate-900"
+      >
+        ✕
+      </button>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Button from '../components/Button';
+import { SUGGESTED_SHADES } from '../constants'; // Importar SUGGESTED_SHADES
 
 interface AnalysisProps {
   onBack: () => void;
@@ -14,13 +15,6 @@ const Analysis: React.FC<AnalysisProps> = ({ onBack, onShowRecommendations, onTr
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null); // Adicionado para capturar a imagem
   const [capturedImage, setCapturedImage] = useState<string | null>(null); // Estado para a imagem capturada
-
-  // Mock Data for Shades
-  const SUGGESTED_SHADES = [
-    { id: 'shade_04', name: 'Bege Médio 04', brand: 'Lumina', color: '#e0ac69', match: 98, storeLink: 'https://www.tiktok.com/@blindaskin?_r=1&_t=ZM-91aKKMkTCqu' },
-    { id: 'shade_05', name: 'Bege Claro 05', brand: 'GlowUp', color: '#e8b880', match: 92, storeLink: 'https://www.tiktok.com/@blindaskin?_r=1&_t=ZM-91aKKMkTCqu' },
-    { id: 'shade_03', name: 'Bege Médio 03', brand: 'Lumina', color: '#d69d5e', match: 89, storeLink: 'https://www.tiktok.com/@blindaskin?_r=1&_t=ZM-1aKKMkTCqu' },
-  ];
 
   // Mock Data for Best Features
   const BEST_FEATURES = [

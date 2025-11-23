@@ -26,3 +26,9 @@ export const TESTIMONIALS = [
   { name: "Lucas M.", role: "Makeup Lover", text: "A análise de tom de base é perfeita. Nunca mais errei na compra." },
   { name: "Beatriz S.", role: "Profissional", text: "A rotina personalizada salvou minhas manhãs corridas." },
 ];
+
+export const SUGGESTED_SHADES = [
+  { id: 'shade_04', name: 'Bege Médio 04', brand: 'Lumina', color: '#e0ac69', match: 98, storeLink: 'https://www.tiktok.com/@blindaskin?_r=1&_t=ZM-91aKKMkTCqu' },
+  { id: 'shade_05', name: 'Bege Claro 05', brand: 'GlowUp', color: '#e8b880', match: 92, storeLink: 'https://www.tiktok.com/@blindaskin?_r=1&_t=ZM-91aKKMkTCqu' },
+  { id: 'shade_03', name: 'Bege Médio 03', brand: 'Lumina', color: '#d69d5e', match: 89, storeLink: 'https://www.tiktok.com/@blindaskin?_r=1&_t=ZM-1aKKMkTCqu' },
+];

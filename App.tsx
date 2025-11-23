@@ -15,6 +15,7 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.LANDING);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [showSubscription, setShowSubscription] = useState(false);
+  const [selectedShadeForTryOn, setSelectedShadeForTryOn] = useState<string | null>(null); // Novo estado
 
   // Mock checking session
   useEffect(() => {
@@ -26,6 +27,14 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const handleSetView = (view: AppView) => {
+    // Reset selectedShadeForTryOn when leaving VirtualTryOn view
+    if (currentView === AppView.TRY_ON && view !== AppView.TRY_ON) {
+      setSelectedShadeForTryOn(null);
+    }
+    setCurrentView(view);
+  };
+
   const handleOnboardingComplete = (profileData: any) => {
     const newUser: UserProfile = {
       name: profileData.name,
@@ -36,7 +45,7 @@ const App: React.FC = () => {
     };
     setUser(newUser);
     localStorage.setItem('skinovaai_user', JSON.stringify(newUser));
-    setCurrentView(AppView.DASHBOARD);
+    handleSetView(AppView.DASHBOARD);
     
     // Trigger subscription upsell after onboarding
     setTimeout(() => setShowSubscription(true), 2000);
@@ -44,37 +53,47 @@ const App: React.FC = () => {
 
   const handleLogin = () => {
     // Simulating login for demo
-    setCurrentView(AppView.ONBOARDING);
+    handleSetView(AppView.ONBOARDING);
   };
 
   const renderView = () => {
     switch (currentView) {
       case AppView.LANDING:
-        return <LandingPage onGetStarted={() => setCurrentView(AppView.ONBOARDING)} onLogin={handleLogin} />;
+        return <LandingPage onGetStarted={() => handleSetView(AppView.ONBOARDING)} onLogin={handleLogin} />;
       case AppView.ONBOARDING:
         return <Onboarding onComplete={handleOnboardingComplete} />;
       case AppView.DASHBOARD:
-        return user ? <Dashboard user={user} setView={setCurrentView} /> : null;
+        return user ? <Dashboard user={user} setView={handleSetView} /> : null;
       case AppView.TRY_ON:
-        return <VirtualTryOn setView={setCurrentView} />;
+        return (
+          <VirtualTryOn 
+            onClose={() => {
+              setSelectedShadeForTryOn(null); // Reset when closing
+              handleSetView(AppView.DASHBOARD);
+            }}
+            onViewProducts={() => {
+              setSelectedShadeForTryOn(null); // Reset when viewing products
+              handleSetView(AppView.PRODUCTS);
+            }}
+            initialShadeId={selectedShadeForTryOn} 
+          />
+        );
       case AppView.CONFIDENCE:
         return <Confidence />;
       case AppView.ROUTINES:
         return <Routines />;
       case AppView.PRODUCTS:
-        return <ProductsList onBack={() => setCurrentView(AppView.DASHBOARD)} />;
+        return <ProductsList onBack={() => handleSetView(AppView.DASHBOARD)} />;
       case AppView.ANALYSIS:
         return (
           <Analysis 
-            onBack={() => setCurrentView(AppView.DASHBOARD)}
+            onBack={() => handleSetView(AppView.DASHBOARD)}
             onShowRecommendations={() => {
-              // For now, we redirect to Dashboard, in a full app this would open a specific products view
-              setCurrentView(AppView.PRODUCTS);
+              handleSetView(AppView.PRODUCTS);
             }}
             onTryOn={(shadeId) => {
-              // In a real app, pass shadeId to the TryOn component context
-              console.log(`Trying on shade: ${shadeId}`);
-              setCurrentView(AppView.TRY_ON);
+              setSelectedShadeForTryOn(shadeId); // Define o shadeId antes de navegar
+              handleSetView(AppView.TRY_ON);
             }}
           />
         );
@@ -87,13 +106,13 @@ const App: React.FC = () => {
                  setUser(updatedUser);
                  localStorage.setItem('skinovaai_user', JSON.stringify(updatedUser));
                }
-               setCurrentView(AppView.DASHBOARD);
+               handleSetView(AppView.DASHBOARD);
              }}
-             onCancel={() => setCurrentView(AppView.DASHBOARD)}
+             onCancel={() => handleSetView(AppView.DASHBOARD)}
            />
          );
       default:
-        return <LandingPage onGetStarted={() => setCurrentView(AppView.ONBOARDING)} onLogin={handleLogin} />;
+        return <LandingPage onGetStarted={() => handleSetView(AppView.ONBOARDING)} onLogin={handleLogin} />;
     }
   };
 
@@ -111,7 +130,7 @@ const App: React.FC = () => {
        currentView !== AppView.PRODUCTS && (
         <Navigation 
           currentView={currentView} 
-          setView={setCurrentView} 
+          setView={handleSetView} 
           isLoggedIn={!!user} 
         />
       )}
@@ -129,25 +148,6 @@ const App: React.FC = () => {
           }} 
           onCancel={() => setShowSubscription(false)} 
         />
-      )}
-
-      {/* Global Back Buttons for full screen views are handled inside components now where possible, 
-          or specifically for views that don't implement their own header */}
-      {currentView === AppView.TRY_ON && (
-         <button 
-           onClick={() => setCurrentView(AppView.DASHBOARD)}
-           className="fixed top-4 left-4 z-50 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center font-bold text-slate-900"
-         >
-           ✕
-         </button>
-      )}
-       {currentView === AppView.CONFIDENCE && (
-         <button 
-           onClick={() => setCurrentView(AppView.DASHBOARD)}
-           className="fixed top-4 left-4 z-50 w-10 h-10 bg-white/20 backdrop-blur rounded-full shadow-lg flex items-center justify-center font-bold text-white"
-         >
-           ✕
-         </button>
       )}
     </div>
   );
