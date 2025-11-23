@@ -1,12 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Button from '../components/Button';
+import { AppView } from '../types'; // Importar AppView
 
-const VirtualTryOn: React.FC = () => {
+interface VirtualTryOnProps {
+  setView: (view: AppView) => void; // Adicionar prop setView
+}
+
+const VirtualTryOn: React.FC<VirtualTryOnProps> = ({ setView }) => { // Receber setView
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null); // Adicionado para capturar a imagem
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [permissionGranted, setPermissionGranted] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null); // Estado para a imagem capturada
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -17,7 +22,7 @@ const VirtualTryOn: React.FC = () => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           setPermissionGranted(true);
-          setCapturedImage(null); // Resetar imagem capturada ao iniciar câmera
+          setCapturedImage(null);
         }
       } catch (err) {
         console.error("Error accessing camera:", err);
@@ -25,18 +30,17 @@ const VirtualTryOn: React.FC = () => {
       }
     };
 
-    if (!capturedImage) { // Só inicia a câmera se não houver imagem capturada
+    if (!capturedImage) {
       startCamera();
     }
 
     return () => {
-      // Cleanup stream
       if (videoRef.current && videoRef.current.srcObject) {
         const currentStream = videoRef.current.srcObject as MediaStream;
         currentStream.getTracks().forEach(track => track.stop());
       }
     };
-  }, [capturedImage]); // Dependência adicionada para reiniciar a câmera se a imagem for resetada
+  }, [capturedImage]);
 
   const takePhoto = () => {
     if (videoRef.current && canvasRef.current) {
@@ -45,20 +49,17 @@ const VirtualTryOn: React.FC = () => {
       const context = canvas.getContext('2d');
 
       if (context) {
-        // Set canvas dimensions to video dimensions
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
-        // Draw the video frame onto the canvas, flipping horizontally
         context.translate(canvas.width, 0);
         context.scale(-1, 1);
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        context.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+        context.setTransform(1, 0, 0, 1, 0, 0);
 
         const imageData = canvas.toDataURL('image/png');
         setCapturedImage(imageData);
         
-        // Stop camera stream after taking photo
         if (video.srcObject) {
           const stream = video.srcObject as MediaStream;
           stream.getTracks().forEach(track => track.stop());
@@ -68,7 +69,7 @@ const VirtualTryOn: React.FC = () => {
   };
 
   const retakePhoto = () => {
-    setCapturedImage(null); // Limpa a imagem capturada para reiniciar a câmera
+    setCapturedImage(null);
   };
 
   const filters = [
@@ -91,7 +92,7 @@ const VirtualTryOn: React.FC = () => {
               muted 
               className="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]"
             />
-            <canvas ref={canvasRef} className="hidden"></canvas> {/* Canvas oculto para captura */}
+            <canvas ref={canvasRef} className="hidden"></canvas>
           </>
         ) : (
           <img 
@@ -166,7 +167,7 @@ const VirtualTryOn: React.FC = () => {
               Tirar Outra Foto
             </Button>
           )}
-          <Button fullWidth variant="secondary">Ver Produtos</Button>
+          <Button fullWidth variant="secondary" onClick={() => setView(AppView.PRODUCTS)}>Ver Produtos</Button>
         </div>
       </div>
     </div>

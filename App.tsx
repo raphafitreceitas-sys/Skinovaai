@@ -56,7 +56,7 @@ const App: React.FC = () => {
       case AppView.DASHBOARD:
         return user ? <Dashboard user={user} setView={setCurrentView} /> : null;
       case AppView.TRY_ON:
-        return <VirtualTryOn />;
+        return <VirtualTryOn setView={setCurrentView} />;
       case AppView.CONFIDENCE:
         return <Confidence />;
       case AppView.ROUTINES:
