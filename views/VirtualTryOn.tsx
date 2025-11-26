@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Button from '../components/Button';
-import { showSuccess } from '../utils/toast';
-import { SUGGESTED_SHADES } from '../constants'; // Importar SUGGESTED_SHADES
+import { showSuccess } from '../src/utils/toast'; // Corrected import path
+import { SUGGESTED_SHADES } from '../constants';
 
 interface VirtualTryOnProps {
   onClose: () => void; // Callback para fechar o provador
